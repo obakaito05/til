@@ -1,0 +1,128 @@
+userモデルにクラスメソッドを作成する
+記述方法は、メソッド名の前にselfを.（ドット）で繋いで定義する
+
+app/models/user.rb
+class User < ApplicationRecord
+ # Include default devise modules. Others available are:
+ # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
+ devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :validatable, :omniauthable, omniauth_providers: [:facebook, :google_oauth2]
+
+ has_many :sns_credentials
+
+ def self.from_omniauth(auth)　　　　←ここから
+ end　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　←ここまで
+end
+
+ここまででomniauth_callbacks_controller.rbに記述した、User.from_omniauthも呼び出せるようになったため
+binding.pryを使用してデータの中身を確認。
+
+binding.pryを作動させるために
+gemfileにて
+gem "pry-rails"を入力後
+
+ターミナルにて
+% bundle install
+を入力
+
+今回引数にauthを使用しているのでbinding.pryにて停止したらターミナルにauthを入力
+中身が確認できる
+
+一例
+pry(User)> auth  # 入力する
+=> {"provider"=>"facebook",
+ "uid"=>"0000000000000000000",
+ "info"=>{"email"=>"sample@gmail.com", "name"=>"田中　太郎", "image"=>"http://graph.facebook.com/v3.0/00000000000/picture"},
+ "credentials"=>{"token"=>"EAAEFJ0Ix9jwBAAb13wvaXERbdh.........", "expires_at"=>0000000, "expires"=>true},
+ "extra"=>{"raw_info"=>{"name"=>"田中　太郎 ", "email"=>"sample@gmail.com", "id"=>"000000000"}}}
+ 
+確認できたらexitと入力して処理を停止して削除する
+first_or_createメソッド、first_or_initializeメソッドを使用しSNS認証をおこなったかどうか確認した後のコードを記入する
+
+first_or_createメソッドとは
+保存するレコードがデータベースに存在するかを検索し、検索した条件のレコードがあればそのレコードのインスタンスを返し、
+なければ新しくインスタンスを保存するメソッドのこと。
+
+first_or_initializeメソッドとは
+whereメソッドとともに使うことで、whereで検索した条件のレコードがあればそのレコードのインスタンスを返し、
+なければ新しくインスタンスを作るメソッドのこと。
+
+違いは
+create 　　　　　　 →  　　　　　 新規レコードをデータベースに保存する
+initialize　　→　　　　　　　　　　　新規レコードをデータベースに保存しない
+
+app/models/user.rb
+
+def self.from_omniauth(auth)　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　←ここから
+   sns = SnsCredential.where(provider: auth.provider, uid: auth.uid).first_or_create
+   # sns認証したことがあればアソシエーションで取得
+   # 無ければemailでユーザー検索して取得orビルド(保存はしない)
+   user = User.where(email: auth.info.email).first_or_initialize(
+     nickname: auth.info.name,
+       email: auth.info.email
+   )
+ end　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　←ここまで
+end
+
+モデルから帰ってきた後の処理を記述するため
+コントローラーを編集する
+
+app/controllers/users/omniauth_callbacks_controller.rb
+
+def authorization
+    @user = User.from_omniauth(request.env["omniauth.auth"])
+
+    if @user.persisted? #ユーザー情報が登録済みなので、新規登録ではなくログイン処理を行う
+      sign_in_and_redirect @user, event: :authentication
+    else #ユーザー情報が未登録なので、新規登録画面へ遷移する
+      render template: 'devise/registrations/new'
+    end
+    
+Userモデルに先ほどの記述に加えてログイン時の記述も行う
+    
+app/models/user.rb
+
+# userが登録済みであるか判断
+   if user.persisted?
+     sns.user = user
+     sns.save
+   end
+   user
+   end
+
+入力後ログインのビューも記述する
+
+app/views/devise/sessions/new.html.erb
+
+# 任意の場所に記述
+<%= link_to 'Facebookでログイン', user_facebook_omniauth_authorize_path, method: :post%>
+<%= link_to 'Googleでログイン', user_google_oauth2_omniauth_authorize_path, method: :post%>
+
+ただ上記の追記によって不要な記述が発生したため削除する必要があリます
+_links.html.erbファイルに記載されている「FacebookとGoogleの認証ページへのリンクは先ほどnew.html.erbで実装
+したものと被っているためです。
+
+app/views/devise/shared/_links.html.erb
+
+# 以下の記述を削除する
+<%- if devise_mapping.omniauthable? %>
+  <%- resource_class.omniauth_providers.each do |provider| %>
+    <%= link_to "Sign in with #{OmniAuth::Utils.camelize(provider)}", omniauth_authorize_path(resource_name, provider) %><br />
+  <% end %>
+<% end %>
+
+ここまでで大枠の実装は完了ですので最後にSNS認証の際にはパスワードを自動生成する機能の実装をします。
+所得したfacebookの情報を外部キーがなくても保存できるオプションを付与する。
+
+app/models/sns_credential.rb
+
+class SnsCredential < ApplicationRecord
+ belongs_to :user, optional: true
+end
+
+optional: true とは、レコードを保存する際に、外部キーの値がない場合でも保存ができるオプションのこと
+新規登録時は、「nickname」「email」の値をビューに表示させることで、新規登録を行っていました。
+しかし、パスワードを非表示にする場合は、SnsCredentialモデルのレコード情報で条件分岐を行います。
+よって、「user_id」が生成されていないタイミングでも保存する必要があります。
+
+ここから先はSNS連動3へ
