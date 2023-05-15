@@ -91,12 +91,12 @@ pullDownButton.addEventListener('mouseout', function(){
 なので、cssのdisplay:none;を用いて非表示の状態にする
   
 html
-  <ul class="show-lists"
-      <li>リスト1</li
-      <li>リスト2</li
-      <li>リスト3</li
-      <li>リスト4</li
-    </ul
+  ul class="show-lists"
+      <li>リスト1
+      <li>リスト2
+      <li>リスト3
+      <li>リスト4
+    
 
 このままだと画面上に表示されたままになってしまうため先ほど記載した
 display:none;を指定し、非表示の状態にする
