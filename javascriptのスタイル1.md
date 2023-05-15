@@ -116,20 +116,20 @@ idを指定した要素を取得するため.jsの記述を行う
 .js  
   
 const pullDownButton = document.getElementById("lists")
-const pullDownParents = document.getElementById("pull-down")　　　　　　　　　　←先ほどのファイルに追加記載
+const pullDownParents = document.getElementById("pull-down")　　　←先ほどのファイルに追加記載
 
 これでHTMlの情報を取得することができたので実際に表示を行う
 要素をクリックすると表示ができるようにしたい
 かつdisplay:block;を指定し表示する必要があるため
 .js
 pullDownButton.addEventListener('click', function() {
-    pullDownParents.setAttribute("style", "display:block;")     ←先ほどのファイルに追加記載
+    pullDownParents.setAttribute("style", "display:block;")  ←先ほどのファイルに追加記載
   })
   
 記載する際にconsole.log("click OK")は消しておく
 
 .html
-<ul class="show-lists hidden">    ←hiddenを追加記載する
+<ul class="show-lists hidden"> ←hiddenを追加記載する
       <li>リスト1</li>
       <li>リスト2</li>
       <li>リスト3</li>
