@@ -129,7 +129,7 @@ pullDownButton.addEventListener('click', function() {
 記載する際にconsole.log("click OK")は消しておく
 
 .html
-<ul class= "show-lists hidden" > ←hiddenを追加記載する
+ul class= "show-lists hidden"  ←hiddenを追加記載する
       <li>リスト1</li>
       <li>リスト2</li>
       <li>リスト3</li>
